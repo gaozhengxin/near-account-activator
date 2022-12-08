@@ -1,0 +1,86 @@
+type AcceptOwner @entity(immutable: true) {
+  id: Bytes!
+  owner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ActivationFailed @entity(immutable: true) {
+  id: Bytes!
+  near_account: String! # string
+  activationInfo_payer: Bytes! # address
+  activationInfo_price: BigInt! # uint256
+  activationInfo_publicKey: String! # string
+  activationInfo_status: Int! # uint8
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ActivationRequest @entity(immutable: true) {
+  id: Bytes!
+  near_account: String! # string
+  activationInfo_payer: Bytes! # address
+  activationInfo_price: BigInt! # uint256
+  activationInfo_publicKey: String! # string
+  activationInfo_status: Int! # uint8
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ActivationSuccess @entity(immutable: true) {
+  id: Bytes!
+  near_account: String! # string
+  activationInfo_payer: Bytes! # address
+  activationInfo_price: BigInt! # uint256
+  activationInfo_publicKey: String! # string
+  activationInfo_status: Int! # uint8
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Refund @entity(immutable: true) {
+  id: Bytes!
+  near_account: String! # string
+  to: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SetPaused @entity(immutable: true) {
+  id: Bytes!
+  paused: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SetPrice @entity(immutable: true) {
+  id: Bytes!
+  price: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TransferOwner @entity(immutable: true) {
+  id: Bytes!
+  to: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Withdrawl @entity(immutable: true) {
+  id: Bytes!
+  amount: BigInt! # uint256
+  to: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

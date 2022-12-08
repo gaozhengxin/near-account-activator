@@ -1,0 +1,47 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Activator
+    network: matic
+    source:
+      address: "0x2De68366eF3F5cB580a210312CDa5adA218deb5c"
+      abi: Activator
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AcceptOwner
+        - ActivationFailed
+        - ActivationRequest
+        - ActivationSuccess
+        - Refund
+        - SetPaused
+        - SetPrice
+        - TransferOwner
+        - Withdrawl
+      abis:
+        - name: Activator
+          file: ./abis/Activator.json
+      eventHandlers:
+        - event: AcceptOwner(address)
+          handler: handleAcceptOwner
+        - event: ActivationFailed(string,(address,uint256,string,uint8))
+          handler: handleActivationFailed
+        - event: ActivationRequest(string,(address,uint256,string,uint8))
+          handler: handleActivationRequest
+        - event: ActivationSuccess(string,(address,uint256,string,uint8))
+          handler: handleActivationSuccess
+        - event: Refund(string,address,uint256)
+          handler: handleRefund
+        - event: SetPaused(bool)
+          handler: handleSetPaused
+        - event: SetPrice(uint256)
+          handler: handleSetPrice
+        - event: TransferOwner(address)
+          handler: handleTransferOwner
+        - event: Withdrawl(uint256,address)
+          handler: handleWithdrawl
+      file: ./src/activator.ts
