@@ -1,4 +1,3 @@
-//import { execute } from './.graphclient'
 const cli = require('./.graphclient');
 
 const query = `
@@ -21,7 +20,7 @@ query poll($startBlock: String!) {
 }
 `
 
-async function poll(startBlock: number, callback: (req: any) => void) {
+export async function poll(startBlock: number, callback: (req: any) => void) {
   for (; ;) {
     let result = await cli.execute(query, { "startBlock": "" + startBlock })
     let reqs = result.data.activationRequests
@@ -38,4 +37,4 @@ async function poll(startBlock: number, callback: (req: any) => void) {
   }
 }
 
-poll(36500000, (result: any) => { console.log(JSON.stringify(result)) })
+//poll(36500000, (result: any) => { console.log(JSON.stringify(result)) })

@@ -9,3 +9,7 @@ ethereum/typechain-types
 #Hardhat files
 ethereum/cache
 ethereum/artifacts
+
+**/.mnemonic
+
+activator-backend/database

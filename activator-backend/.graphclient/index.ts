@@ -1350,7 +1350,7 @@ export type ResolversParentTypes = ResolversObject<{
   _Meta_: _Meta_;
 }>;
 
-export type entityDirectiveArgs = { };
+export type entityDirectiveArgs = {};
 
 export type entityDirectiveResolver<Result, Parent, ContextType = MeshContext, Args = entityDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
@@ -1564,10 +1564,10 @@ const baseDir = pathModule.join(typeof __dirname === 'string' ? __dirname : '/',
 
 const importFn: ImportFn = <T>(moduleId: string) => {
   const relativeModuleId = (pathModule.isAbsolute(moduleId) ? pathModule.relative(baseDir, moduleId) : moduleId).split('\\').join('/').replace(baseDir + '/', '');
-  switch(relativeModuleId) {
+  switch (relativeModuleId) {
     case ".graphclient/sources/activator/introspectionSchema":
       return import("./sources/activator/introspectionSchema") as T;
-    
+
     default:
       return Promise.reject(new Error(`Cannot find module '${relativeModuleId}'.`));
   }
@@ -1584,44 +1584,44 @@ const rootStore = new MeshStore('.graphclient', new FsStoreStorageAdapter({
 
 export const rawServeConfig: YamlConfig.Config['serve'] = undefined as any
 export async function getMeshOptions(): Promise<GetMeshOptions> {
-const pubsub = new PubSub();
-const sourcesStore = rootStore.child('sources');
-const logger = new DefaultLogger("GraphClient");
-const cache = new (MeshCache as any)({
-      ...({} as any),
-      importFn,
-      store: rootStore.child('cache'),
-      pubsub,
-      logger,
-    } as any)
+  const pubsub = new PubSub();
+  const sourcesStore = rootStore.child('sources');
+  const logger = new DefaultLogger("GraphClient");
+  const cache = new (MeshCache as any)({
+    ...({} as any),
+    importFn,
+    store: rootStore.child('cache'),
+    pubsub,
+    logger,
+  } as any)
 
-const sources: MeshResolvedSource[] = [];
-const transforms: MeshTransform[] = [];
-const additionalEnvelopPlugins: MeshPlugin<any>[] = [];
-const activatorTransforms = [];
-const additionalTypeDefs = [] as any[];
-const activatorHandler = new GraphqlHandler({
-              name: "activator",
-              config: {"endpoint":"https://api.thegraph.com/subgraphs/name/gaozhengxin/near-activator-on-polygon"},
-              baseDir,
-              cache,
-              pubsub,
-              store: sourcesStore.child("activator"),
-              logger: logger.child("activator"),
-              importFn,
-            });
-sources[0] = {
-          name: 'activator',
-          handler: activatorHandler,
-          transforms: activatorTransforms
-        }
-const additionalResolvers = [] as any[]
-const merger = new(BareMerger as any)({
-        cache,
-        pubsub,
-        logger: logger.child('bareMerger'),
-        store: rootStore.child('bareMerger')
-      })
+  const sources: MeshResolvedSource[] = [];
+  const transforms: MeshTransform[] = [];
+  const additionalEnvelopPlugins: MeshPlugin<any>[] = [];
+  const activatorTransforms = [];
+  const additionalTypeDefs = [] as any[];
+  const activatorHandler = new GraphqlHandler({
+    name: "activator",
+    config: { "endpoint": "https://api.thegraph.com/subgraphs/name/gaozhengxin/near-activator-on-polygon" },
+    baseDir,
+    cache,
+    pubsub,
+    store: sourcesStore.child("activator"),
+    logger: logger.child("activator"),
+    importFn,
+  });
+  sources[0] = {
+    name: 'activator',
+    handler: activatorHandler,
+    transforms: activatorTransforms
+  }
+  const additionalResolvers = [] as any[]
+  const merger = new (BareMerger as any)({
+    cache,
+    pubsub,
+    logger: logger.child('bareMerger'),
+    store: rootStore.child('bareMerger')
+  })
 
   return {
     sources,
@@ -1635,8 +1635,8 @@ const merger = new(BareMerger as any)({
     additionalEnvelopPlugins,
     get documents() {
       return [
-      
-    ];
+
+      ];
     },
     fetchFn,
   };
