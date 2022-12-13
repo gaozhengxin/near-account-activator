@@ -4,9 +4,22 @@
 #### Query activation request
 Subgraph: `thegraph.com/hosted-service/gaozhengxin/near-activator-on-polygon`
 
-#### Query with scipt
-Require `ts-node` version >= 10.9.1
+#### Run backend
+Require `ts-node` version >= `10.9.1`
+```bash
+git clone https://github.com/gaozhengxin/near-account-activator
+cd ./near-account-activator/activator-backend
+npm i
 ```
-cd query
-ts-node ./index.ts
+Set Near operator account secret seed.
+```bash
+echo '<secret seed>' > ./.mnemonics
+```
+Set polygon operator private key.
+```bash
+echo '<private key>' > ./.private
+```
+Run script.
+```bash
+ts-node .
 ```
