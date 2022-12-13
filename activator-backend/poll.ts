@@ -25,7 +25,7 @@ export async function poll(startBlock: number, callback: (req: any) => void) {
     let result = await cli.execute(query, { "startBlock": "" + startBlock })
     let reqs = result.data.activationRequests
     if (reqs !== null && reqs.length > 0) {
-      reqs.map(callback)
+      reqs.map(await callback)
       let last = reqs[reqs.length - 1].blockNumber
       if (last === startBlock) {
         startBlock++

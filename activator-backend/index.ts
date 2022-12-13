@@ -1,16 +1,20 @@
 const Poll = require('./poll.ts');
 const poll = Poll.poll;
-const { connect, KeyPair, keyStores } = require("near-api-js");
+const { connect, KeyPair, keyStores, providers } = require("near-api-js");
 const { parseSeedPhrase } = require('near-seed-phrase');
 const fs = require("fs");
 import level from 'level-ts';
+import { ethers } from "ethers";
+
 const database = new level('./database');
 
 const ACCOUNT_ID = "ashitz.near";
 const NETWORK_ID = "mainnet";
-const KEY_PATH = './.mnemonic';
+const NEAR_KEY_PATH = './.mnemonic';
+const EVM_KEY_PATH = './.private';
 
-const mnemonic = fs.readFileSync(KEY_PATH).toString();
+const mnemonic = fs.readFileSync(NEAR_KEY_PATH).toString();
+const evm_private_key = fs.readFileSync(EVM_KEY_PATH).toString();
 const myKeyStore = new keyStores.InMemoryKeyStore();
 const { _, secretKey } = parseSeedPhrase(mnemonic);
 myKeyStore.setKey(NETWORK_ID, ACCOUNT_ID, KeyPair.fromString(secretKey));
@@ -18,17 +22,22 @@ myKeyStore.setKey(NETWORK_ID, ACCOUNT_ID, KeyPair.fromString(secretKey));
 const connectionConfig = {
     networkId: "mainnet",
     keyStore: myKeyStore, // first create a key store
-    nodeUrl: "https://rpc.mainnet.near.org",
+    nodeUrl: "https://rpc.ankr.com/near",
     walletUrl: "https://wallet.mainnet.near.org",
     helperUrl: "https://helper.mainnet.near.org",
     explorerUrl: "https://explorer.mainnet.near.org",
 };
+
+const provider = new providers.JsonRpcProvider(connectionConfig.nodeUrl)
 
 var nearConnection: any
 
 async function connectNear() {
     nearConnection = await connect(connectionConfig);
 }
+
+const polygon_provider = new ethers.providers.JsonRpcProvider('https://rpc-mainnet.maticvigil.com');
+const polygon_signer = new ethers.Wallet(evm_private_key, polygon_provider)
 
 const hexToByte = (hex: String) => {
     const key = '0123456789abcdef'
@@ -50,23 +59,6 @@ const hexToByte = (hex: String) => {
 
 const { binary_to_base58 } = require('base58-js')
 
-async function activate(new_account_name: String, public_key: string, callback: (succ: boolean, new_account_name: String) => any) {
-    const account = await nearConnection.account(ACCOUNT_ID);
-    try {
-        public_key = formatPublicKey(public_key).toString()
-        let res = await account.createAccount(
-            new_account_name,
-            public_key, // "8hSHprDq2StXwMtNd43wDTXQYsjXcD4MJTXQYsjXcc"
-            "20000000000000000000" // initial balance for new account in yoctoNEAR
-        );
-        console.log(await res.wait());
-        callback(true, new_account_name)
-    } catch (e: any) {
-        console.log(e);
-        callback(false, new_account_name)
-    }
-}
-
 function formatPublicKey(public_key: String): String {
     if (public_key.length === 66) {
         public_key = public_key.substring(2)
@@ -77,9 +69,76 @@ function formatPublicKey(public_key: String): String {
     return public_key
 }
 
-async function main() {
+async function activate(account_id: String, public_key: string, callback: (succ: boolean, new_account_name: String) => any) {
+    public_key = formatPublicKey(public_key).toString()
+    if (account_id.length === 64 || (account_id.length === 66 && account_id.substring(0, 2) === '0x')) {
+        fundHexAccount(account_id, callback)
+    } else {
+        createDotNearAccount(account_id, public_key, callback)
+    }
+}
+
+async function createDotNearAccount(new_account_name: String, public_key: string, callback: (succ: boolean, new_account_name: String) => any) {
+    const account = await nearConnection.account(ACCOUNT_ID);
+    var exists = true
+    try {
+        let res = await provider.query({
+            request_type: "view_account",
+            account_id: new_account_name,
+            finality: "final",
+        });
+        console.log(`res : ${JSON.stringify(res)}`)
+    } catch (e: any) {
+        if (e.type === 'AccountDoesNotExist' || e.toString().includes("does not exist while viewin")) {
+            exists = false;
+        } else {
+            console.log(e)
+        }
+    }
+    if (exists) {
+        console.log(`account already exists : ${new_account_name}`)
+        callback(false, new_account_name)
+        return
+    }
+    try {
+        let res = await account.functionCall({
+            contractId: 'near',
+            methodName: 'create_account',
+            args: {
+                new_account_id: new_account_name,
+                new_public_key: public_key
+            },
+            gas: '100000000000000',
+            attachedDeposit: '100000000000000000000000'
+        })
+        console.log(res);
+        callback(true, new_account_name)
+    } catch (e: any) {
+        console.log(e)
+        callback(false, new_account_name)
+    }
+}
+
+async function fundHexAccount(account_id: String, callback: (succ: boolean, new_account_name: String) => any) {
+    const account = await nearConnection.account(ACCOUNT_ID);
+    try {
+        let res = await account.sendMoney(account_id, '100000000000000000000000')
+        console.log(res);
+        callback(true, account_id)
+    } catch (e: any) {
+        console.log(e)
+        callback(false, account_id)
+    }
+}
+
+var activator_abi = [{ "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "owner", "type": "address" }], "name": "AcceptOwner", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "string", "name": "near_account", "type": "string" }, { "components": [{ "internalType": "address", "name": "payer", "type": "address" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "string", "name": "publicKey", "type": "string" }, { "internalType": "enumActivator.activationStatus", "name": "status", "type": "uint8" }], "indexed": false, "internalType": "structActivator.ActivationInfo", "name": "activationInfo", "type": "tuple" }], "name": "ActivationFailed", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "string", "name": "near_account", "type": "string" }, { "components": [{ "internalType": "address", "name": "payer", "type": "address" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "string", "name": "publicKey", "type": "string" }, { "internalType": "enumActivator.activationStatus", "name": "status", "type": "uint8" }], "indexed": false, "internalType": "structActivator.ActivationInfo", "name": "activationInfo", "type": "tuple" }], "name": "ActivationRequest", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "string", "name": "near_account", "type": "string" }, { "components": [{ "internalType": "address", "name": "payer", "type": "address" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "string", "name": "publicKey", "type": "string" }, { "internalType": "enumActivator.activationStatus", "name": "status", "type": "uint8" }], "indexed": false, "internalType": "structActivator.ActivationInfo", "name": "activationInfo", "type": "tuple" }], "name": "ActivationSuccess", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "string", "name": "near_account", "type": "string" }, { "indexed": false, "internalType": "address", "name": "to", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "Refund", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "uint256", "name": "price", "type": "uint256" }], "name": "SetPrice", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "to", "type": "address" }], "name": "TransferOwner", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }, { "indexed": false, "internalType": "address", "name": "to", "type": "address" }], "name": "Withdrawl", "type": "event" }, { "inputs": [], "name": "acceptOwner", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "string", "name": "accountName", "type": "string" }, { "internalType": "string", "name": "publicKey", "type": "string" }], "name": "activate", "outputs": [], "stateMutability": "payable", "type": "function" }, { "inputs": [{ "internalType": "string", "name": "accountName", "type": "string" }, { "internalType": "bool", "name": "success", "type": "bool" }], "name": "postResult", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "string", "name": "accountName", "type": "string" }], "name": "refund", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "price_", "type": "uint256" }], "name": "setPrice", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner_", "type": "address" }], "name": "transferOwner", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "to", "type": "address" }], "name": "withdrawAccrued", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "price_", "type": "uint256" }], "stateMutability": "nonpayable", "type": "constructor" }, { "inputs": [], "name": "accrued", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "string", "name": "", "type": "string" }], "name": "activationInfoOf", "outputs": [{ "internalType": "address", "name": "payer", "type": "address" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "string", "name": "publicKey", "type": "string" }, { "internalType": "enumActivator.activationStatus", "name": "status", "type": "uint8" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "pendingOwner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "price", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }]
+
+var activator_address = '0x2De68366eF3F5cB580a210312CDa5adA218deb5c'
+
+async function main(start: Number) {
     await connectNear()
-    poll(36500000, async (req: any) => {
+    let activator_contract = new ethers.Contract(activator_address, activator_abi, polygon_signer);
+    poll(start, async (req: any) => {
         console.log(JSON.stringify(req))
         var data;
         try { data = await database.get(req.id) } catch (e: any) { }
@@ -87,8 +146,9 @@ async function main() {
             console.log(`duplicated data ${JSON.stringify(data)}`)
             return
         }
+
         await activate(req.near_account, req.activationInfo_publicKey, async (succ: boolean, account_name: String) => {
-            console.log(`succ : ${succ}\naccount name : ${account_name}`)
+            console.log(`succ : ${succ}\taccount name : ${account_name}`)
             await database.put(req.id, {
                 account: req.near_account,
                 pubkey: formatPublicKey(req.activationInfo_publicKey).toString(),
@@ -97,15 +157,24 @@ async function main() {
                 block: req.blockNumber,
                 result: succ
             });
+            // write results
+            console.log(`write result\tsucc : ${succ}\taccount name : ${account_name}`)
+            try {
+                let gasPrice = await polygon_provider.getGasPrice()
+                gasPrice = gasPrice.mul(11).div(10)
+                let createReceipt = await activator_contract.postResult(req.near_account, succ, { gasPrice: gasPrice })
+                await createReceipt.wait();
+                await database.put("result:" + req.id, {
+                    result: succ,
+                    txhash: createReceipt.hash
+                })
+                console.log(`write result tx hash : ${createReceipt.hash}`)
+            } catch (e: any) {
+                console.log(e)
+            }
         })
     })
 }
 
-async function main1() {
-    await connectNear()
-    await activate("deepdarkfantasy.near", "e967b2761d979317771aa50a4f21a03a5b44d83a1c0acb63267142a80db29207", (succ: boolean, account_name: String) => {
-        console.log(`succ : ${succ}\naccount name : ${account_name}`)
-    })
-}
-
-main()
+main(36500000) // test env
+//main(36772631) // production env

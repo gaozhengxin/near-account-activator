@@ -11,5 +11,6 @@ ethereum/cache
 ethereum/artifacts
 
 **/.mnemonic
+**/.private
 
 activator-backend/database
