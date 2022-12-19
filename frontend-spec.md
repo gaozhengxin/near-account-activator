@@ -2,7 +2,7 @@
 - Metamask and others
 - Check if network id is `137` (Polygon)
 ### 2. Connect to Near wallet
-- Sender and others
+- [Sender](https://senderwallet.io/) and others
 - Load user's account id
 - Check if the account is not activated
 ### 3. Check inputs
